@@ -8,7 +8,7 @@ The user performs all the steps themselves, outside the conversation with the ag
    cp -r tg-ai-agent ~/.agents/skills/tg-ai-agent
    ln -s ../../.agents/skills/tg-ai-agent ~/.claude/skills/tg-ai-agent   # on Windows — a copy
    ```
-2. **Service address.** `~/.config/tg-ai-agent/config.json`:
+2. **Service address.** Either tell the agent the address in the first session (it runs `tgai configure --api-url <address>`; the address is not a secret), or create `~/.config/tg-ai-agent/config.json` yourself:
    ```json
    {"api_url": "https://tg-ai-agent.example.com"}
    ```

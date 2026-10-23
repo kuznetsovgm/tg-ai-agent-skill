@@ -34,6 +34,8 @@ It is written below as `tgai <command>`. Every command prints exactly one JSON o
 
 ## Starting in a new context
 
+**First session: the service address.** If `tgai status` answers `CONFIG_ERROR` because the address is not set, ask the user for the address of the tg-ai-agent service (it is not a secret and may be typed in the conversation) and run `tgai configure --api-url <address>`; the script validates it and writes `config.json`. The result says whether the token is in place; if it is not, tell the user to create the token file themselves, outside the conversation (see "Setup"), and wait until they say it is done. Then run `tgai status`.
+
 Always start with `tgai status`. It checks the skill version and connectivity, and shows who you are, the live working sessions of this token and the available accounts. Act on `data.recommendation`:
 
 | `recommendation` | What to do |
@@ -226,4 +228,4 @@ The full list is in `references/commands.md`.
 
 ## Setup
 
-The user puts the service address and token in place themselves, outside the conversation: `references/setup-codex.md`, `references/setup-claude-code.md`, `references/setup-opencode.md`. If a command answered `CONFIG_ERROR`, relay the error message to the user and do not try to set up the token yourself; `tgai doctor` shows which step is missing.
+The service address is given by the user in the conversation and written with `tgai configure --api-url <address>` (first session). The token is put in place by the user themselves, outside the conversation; never ask for it, never create the file for them: `references/setup-codex.md`, `references/setup-claude-code.md`, `references/setup-opencode.md`. If a command answered `CONFIG_ERROR`, relay the error message to the user; for a missing address run `tgai configure`, and do not try to set up the token yourself; `tgai doctor` shows which step is missing.

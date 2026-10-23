@@ -13,9 +13,9 @@ running service and a user token (`tga_…`) from its administrator.
 
 **With an agent:** give it the link to this repository and write "install the
 skill". The agent follows [INSTALL.md](INSTALL.md): it builds and installs the skill
-for Claude Code, Codex CLI and OpenCode, then tells you how to put the service
-address and your token in place. The token never goes through the conversation:
-you create the token file yourself.
+for Claude Code, Codex CLI and OpenCode, then asks you for the service address
+and writes it, and tells you how to put your token in place. The token never goes
+through the conversation: you create the token file yourself.
 
 **By hand:** build the release archive and installers, then install:
 

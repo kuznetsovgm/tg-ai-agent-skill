@@ -5,7 +5,7 @@
 ## Rules
 
 - **Never ask for, read, print or store the user's token** (`tga_…`), and never ask them to paste it into this conversation. The user creates the token file themselves, in their own terminal (step 5).
-- The service address is not secret; you may write it to the config file if the user tells you.
+- The service address is not secret: ask the user for it in the conversation and write it with `tgai configure` (step 5).
 - Do not run anything from the repository except the two commands below (`tools/pack.mjs` and the installer). The installer makes no network requests and does not touch the token or the config.
 - Do not change the client's sandbox, network or permission settings yourself; tell the user what to change (step 6).
 
@@ -53,17 +53,24 @@ Write access to the home directory may need the user's approval in your client; 
 
 Remove the temporary directory afterwards: `rm -rf "$tmp"`.
 
-## 5. Tell the user what only they can do
+## 5. First session: the address, then the token
 
-The skill needs the service address and a personal token from the service administrator. Tell the user to do this **in their own terminal, not in this conversation**:
+Ask the user for the address of their tg-ai-agent service (for example `https://tga.example.com`). It is not a secret and may be typed in the conversation. Write it with the skill itself:
+
+```
+node ~/.agents/skills/tg-ai-agent/scripts/tgai.mjs configure --api-url <address>
+```
+
+The script checks the address (`https://`, no credentials) and writes `~/.config/tg-ai-agent/config.json` with private permissions. It prints whether a token is already in place.
+
+If it is not, tell the user to create it **in their own terminal, not in this conversation** (the token comes from the service administrator), and wait until they confirm:
 
 ```
 install -d -m 700 ~/.config/tg-ai-agent
-printf '{"api_url": "https://YOUR-SERVICE-ADDRESS"}\n' > ~/.config/tg-ai-agent/config.json
 umask 077 && read -rs TOKEN && printf '%s' "$TOKEN" > ~/.config/tg-ai-agent/token && unset TOKEN
 ```
 
-(`read -rs` waits for the token to be typed or pasted and does not echo it.) The address must be `https://`. On Windows the files are `%USERPROFILE%\.config\tg-ai-agent\config.json` and `token`; file permissions are not checked there, so the user should restrict access to their own account. If the user gave you the address, you may create `config.json` yourself; the `token` file is always theirs.
+(`read -rs` waits for the token to be typed or pasted and does not echo it.) On Windows the file is `%USERPROFILE%\.config\tg-ai-agent\token`; permissions are not checked there, so the user should restrict access to their own account. The `token` file is always the user's to create; if the user prefers, the `TGAI_TOKEN` environment variable works too.
 
 ## 6. Client-specific notes
 
@@ -76,7 +83,7 @@ Read the file for the client you run in and pass the relevant part to the user:
 ## 7. Verify and finish
 
 1. `node ~/.agents/skills/tg-ai-agent/scripts/tgai.mjs self-check` must report the files intact.
-2. Once the user has created the token file, `node ~/.agents/skills/tg-ai-agent/scripts/tgai.mjs doctor` names any step that does not work (address, token, permissions, network, TLS). It does not print the token.
+2. Once the user has confirmed the token file, `node ~/.agents/skills/tg-ai-agent/scripts/tgai.mjs doctor` names any step that does not work (address, token, permissions, network, TLS). It does not print the token.
 3. Tell the user that **a new session of the client may be needed** before the skill appears, and that they can then ask, for example, "show my Telegram accounts".
 
 Updating later: repeat steps 2–4; the old version is replaced.

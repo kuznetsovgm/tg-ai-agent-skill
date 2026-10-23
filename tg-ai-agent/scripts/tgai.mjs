@@ -16,6 +16,7 @@ import {
   chmodSync,
   closeSync,
   createWriteStream,
+  existsSync,
   fstatSync,
   lstatSync,
   mkdirSync,
@@ -117,6 +118,7 @@ const COMMANDS = {
   tariff: {},
   doctor: {},
   'self-check': {},
+  configure: { 'api-url': 'v' },
   methods: {},
   operation: {
     method: 'v',
@@ -487,9 +489,14 @@ function resolveApiBase(dir) {
   }
   if (apiUrl === undefined || apiUrl === '') {
     throw configError(
-      `API address is not set: the TGAI_API_URL variable or ${join(dir, 'config.json')} ({"api_url": "https://…"}). See references/setup-*.md.`,
+      `API address is not set: ask the user for the service address (it is not a secret) and run \`tgai configure --api-url <address>\`; or set the TGAI_API_URL variable or ${join(dir, 'config.json')} ({"api_url": "https://…"}). See references/setup-*.md.`,
     );
   }
+  return parseApiBase(apiUrl);
+}
+
+/** Checks a service address and returns its base; the same rules for the file, the variable and `configure`. */
+function parseApiBase(apiUrl) {
   let url;
   try {
     url = new URL(apiUrl);
@@ -520,6 +527,48 @@ function resolveApiBase(dir) {
   let base = url.origin + url.pathname.replace(/\/+$/, '');
   base = base.replace(/\/api\/v1$/, '');
   return { base, local, secure: url.protocol === 'https:' };
+}
+
+/**
+ * `tgai configure --api-url <address>`: writes the service address to the
+ * private `config.json` (first session). The address is not a secret; the token
+ * is never written by this script: the user creates the `token` file themselves.
+ */
+function cmdConfigure(opts) {
+  if (opts['api-url'] === undefined || opts['api-url'] === '') {
+    throw usage('--api-url <address> is required');
+  }
+  const { base } = parseApiBase(opts['api-url']);
+  const dir = configDir();
+  checkConfigDir(dir);
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const path = join(dir, 'config.json');
+  let file = {};
+  const text = readPrivateFile(path, 'configuration');
+  if (text !== null) {
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        file = parsed;
+      }
+    } catch {
+      // a corrupted file is replaced
+    }
+  }
+  file.api_url = base;
+  const tmp = `${path}.${process.pid}.tmp`;
+  writeFileSync(tmp, `${JSON.stringify(file)}\n`, { mode: 0o600 });
+  renameSync(tmp, path);
+  const tokenSet =
+    (env.TGAI_TOKEN ?? '') !== '' || existsSync(join(dir, 'token'));
+  return {
+    api_url: base,
+    config_path: path,
+    token_configured: tokenSet,
+    next: tokenSet
+      ? 'Run `tgai status`.'
+      : `Tell the user to create the token file themselves, in their own terminal and not in this conversation (${join(dir, 'token')}, permissions 0600; steps in references/setup-*.md). Never ask for the token. Then run \`tgai status\`.`,
+  };
 }
 
 /** The token: the environment, then the private `token` file. Never printed. */
@@ -3675,6 +3724,9 @@ async function main() {
         break;
       case 'self-check':
         data = cmdSelfCheck();
+        break;
+      case 'configure':
+        data = cmdConfigure(opts);
         break;
       case 'methods':
         data = await cmdMethods();
