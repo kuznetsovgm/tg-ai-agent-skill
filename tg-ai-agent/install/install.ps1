@@ -15,7 +15,7 @@
 #
 # The same contract as install.sh: the STEP lines are mirrored one to one
 # (a test compares them). NOT run by the automated tests (no PowerShell in CI):
-# the installation on Windows is a manual step of the live client run (L4-09).
+# the installation on Windows is checked by hand on a real client.
 
 [CmdletBinding()]
 param([string]$Archive = '')

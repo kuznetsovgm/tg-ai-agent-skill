@@ -42,7 +42,7 @@ const intEnv = (name, def) => {
   return Number.isFinite(v) && v >= 0 ? v : def;
 };
 
-// Time budget: the whole command stays under 60 s (D79); one request <= 50 s.
+// Time budget: the whole command stays under 60 s; one request <= 50 s.
 const DEADLINE_MS = intEnv('TGAI_DEADLINE_MS', 55_000);
 const REQUEST_TIMEOUT_MS = intEnv('TGAI_REQUEST_TIMEOUT_MS', 50_000);
 const WAIT_MS = intEnv('TGAI_WAIT_MS', 45_000);
@@ -53,11 +53,11 @@ const MAX_RETRY_DELAY_MS = intEnv('TGAI_MAX_RETRY_DELAY_MS', 5_000);
 // given less.
 const OP_RESERVE_MS = intEnv('TGAI_OP_RESERVE_MS', 25_000);
 const DEFAULT_PAGE = 20;
-// Comments default to the server's page size (D139).
+// Comments default to the server's page size.
 const DEFAULT_COMMENTS = 50;
 const MAX_TEXT = 1000;
 
-// The registry of Telegram methods this skill knows (api §7.6, AG15): its
+// The registry of Telegram methods this skill knows (`GET /api/v1/telegram/methods`): its
 // version and, per method, the fields that decide how it is called. The
 // service is the authority: `methods` compares its answer with this table and
 // says to update the skill when they differ; the table is never refreshed at
@@ -570,7 +570,7 @@ const DANGEROUS_CAPABILITIES = ['telegram.account_security', 'telegram.account_l
 /**
  * The refusals of the dangerous mode and of the capabilities: what
  * the agent does next. The same codes arrive as an HTTP refusal at acceptance
- * and as a failed operation at the barrier (api §7.4 p.4), so one helper
+ * and as a failed operation at the barrier, so one helper
  * serves both. Sets `err.hint`; the mode is never enabled by the script.
  */
 function refusalHint(err) {
@@ -755,7 +755,7 @@ function retriable(e, policy) {
 /**
  * Retry policy: 'safe' (GET: up to 3 attempts), 'idempotent' (POST with a
  * stable Idempotency-Key: 2 attempts), 'none' (everything else, in particular
- * AG11: a write is never repeated automatically).
+ * the operations endpoint: a write is never repeated automatically).
  */
 async function request(ctx, method, path, opts = {}) {
   const policy = opts.retry ?? (method === 'GET' ? 'safe' : 'none');
@@ -846,7 +846,7 @@ function closedError(snap) {
   );
 }
 
-/** Polls AG06 until `active`; budget `waitMs`; keeps well under the 60 s limit. */
+/** Polls the session until `active`; budget `waitMs`; keeps well under the 60 s limit. */
 async function waitActive(ctx, snap, waitMs = WAIT_MS) {
   const margin = Math.min(3_000, Math.floor(DEADLINE_MS / 10));
   const until = Math.min(Date.now() + waitMs, ctx.deadlineAt - margin);
@@ -1206,7 +1206,7 @@ async function runOperation(ctx, opts, method, args, via) {
         data,
       },
     );
-    // The barrier can refuse with the same codes as acceptance (api §7.4 p.4).
+    // The barrier can refuse with the same codes as acceptance.
     refusalHint(failed);
     throw explainError(failed, method);
   }
@@ -1240,7 +1240,7 @@ async function runOperation(ctx, opts, method, args, via) {
 
 // ---------------------------------------------------------------- commands
 
-// Money (CT §8.1, §8.8, §8.11): amounts are decimal strings of microcredits.
+// Money: amounts are decimal strings of microcredits.
 // The service gives no estimate; the script computes it from the tariff.
 const MONEY = /^\d{1,30}$/;
 const MONEY_UNIT = 'microcredits';
@@ -1249,7 +1249,7 @@ const MONEY_UNIT = 'microcredits';
 const horizonSeconds = (ms) => BigInt(Math.ceil(ms / 1000));
 
 /**
- * Minimum balance of a session with one account (CT §8.8): `R` is the sum of
+ * Minimum balance of a session with one account: `R` is the sum of
  * the holding rates of the session position and of the account position,
  * `C = R × creation horizon` (the balance needed to create the session),
  * `H = R × admission horizon` (the balance that must remain). Each further
@@ -1542,8 +1542,8 @@ async function cmdAccounts(opts) {
 
 // ---------------------------------------------------------------- proxies
 
-// Personal proxies of the user (AG24-AG26) and the proxy of an own account
-// (AG27). The service shows the user only their own proxies: a proxy of the
+// Personal proxies of the user and the proxy of an own account.
+// The service shows the user only their own proxies: a proxy of the
 // pool or of another user is "not found", like a missing one.
 
 const PROXY_KINDS = ['socks5', 'http'];
@@ -1584,7 +1584,7 @@ function proxyHint(e, notFound) {
   }
 }
 
-/** `tgai proxies [--limit N] [--cursor C]` (AG25): the user's own proxies. */
+/** `tgai proxies [--limit N] [--cursor C]`: the user's own proxies. */
 async function cmdProxies(sub, opts) {
   if (sub === 'add') return cmdProxiesAdd(opts);
   if (sub === 'disable') return cmdProxiesDisable(opts);
@@ -1605,7 +1605,7 @@ async function cmdProxies(sub, opts) {
 
 /**
  * `tgai proxies add --kind K --host H --port P [--username U]
- * [--password-stdin]` (AG24). The password is read from stdin only: there
+ * [--password-stdin]`. The password is read from stdin only: there
  * is no flag for it (an argument is visible in the process list). One
  * idempotency key per command, reused by the script's own retry.
  */
@@ -1647,7 +1647,7 @@ async function cmdProxiesAdd(opts) {
   return { proxy: res.body, idempotent_replay: res.replay };
 }
 
-/** `tgai proxies disable --proxy ID` (AG26): only on the user's explicit request. */
+/** `tgai proxies disable --proxy ID`: only on the user's explicit request. */
 async function cmdProxiesDisable(opts) {
   const proxyId = requireOpt(opts, 'proxy');
   const ctx = makeCtx();
@@ -1669,7 +1669,7 @@ async function cmdProxiesDisable(opts) {
 }
 
 /**
- * `tgai accounts set-proxy --account A --proxy ID` (AG27): only on the
+ * `tgai accounts set-proxy --account A --proxy ID`: only on the
  * user's explicit request — it changes the network address of the account.
  * `data.warning` is the service's warning about the Telegram risk.
  */
@@ -1875,7 +1875,7 @@ async function cmdSessionCreate(opts) {
   const waitMs = waitSec === undefined ? WAIT_MS : waitSec * 1000;
 
   const ctx = makeCtx();
-  // One key per command, reused by retries (D79).
+  // One key per command, reused by retries.
   const key = randomUUID();
   const { body: created, replay } = await request(
     ctx,
@@ -1893,7 +1893,7 @@ async function cmdSessionCreate(opts) {
 }
 
 /**
- * AG06 is version-checked, AG16 is not (D127): under an outdated skill the
+ * session creation is version-checked, the session list is not: under an outdated skill the
  * state of a session is read from the list.
  */
 async function readSessionState(ctx, id) {
@@ -1930,7 +1930,7 @@ async function closeSession(ctx, id, opts) {
     `/api-sessions/${enc(id)}/close`,
     {
       body: {},
-      // One key per close, reused by the retry (CT §10.2).
+      // One key per close, reused by the retry.
       headers: { 'idempotency-key': randomUUID() },
       retry: 'idempotent',
     },
@@ -1951,7 +1951,7 @@ async function closeSession(ctx, id, opts) {
   };
 }
 
-/** AG09 is version-checked, AG16 and AG08 are not (D127): find the session by its bindings. */
+/** Account listing is version-checked, the session list and close are not: find the session by its bindings. */
 async function closeAccountViaList(ctx, accountId, opts) {
   const live = await liveSessions(ctx);
   const hits = live.filter((x) =>
@@ -2117,7 +2117,7 @@ async function cmdSend(opts) {
   return runOperation(makeCtx(), opts, 'messages.send', args);
 }
 
-// Channels and their comments (D139). The post is the `--message` of the channel.
+// Channels and their comments. The post is the `--message` of the channel.
 
 async function cmdChatInfo(opts) {
   const args = { peer: requireOpt(opts, 'peer') };
@@ -2145,13 +2145,13 @@ async function cmdComment(opts) {
   return runOperation(makeCtx(), opts, 'messages.sendComment', args);
 }
 
-// Commands of a bot (D141): the list a bot publishes and its description.
+// Commands of a bot: the list a bot publishes and its description.
 async function cmdBotInfo(opts) {
   const args = { peer: requireOpt(opts, 'peer') };
   return runOperation(makeCtx(), opts, 'bots.info', args);
 }
 
-// Inline buttons (D140). The message is the `--message` of the peer; the
+// Inline buttons. The message is the `--message` of the peer; the
 // button is its place in the keyboard of `history`, `--row` and `--column`
 // counted from 0. `--text` is the text read there: a changed keyboard is
 // not pressed.
@@ -2204,9 +2204,9 @@ async function cmdOpStatus(opts) {
   });
 }
 
-// ---------------------------------------------------------------- events (D136)
+// ---------------------------------------------------------------- events
 
-// Telegram updates of the working session (D136, D137). The service keeps a
+// Telegram updates of the working session. The service keeps a
 // per-session queue with a monotonic `seq`; the skill keeps a local cursor and
 // moves it only after a successful answer. The cursor is not a secret, but it
 // is written only to the private configuration directory (0700, file 0600).
@@ -2287,7 +2287,7 @@ function expiredHint(sessionId, details) {
 }
 
 /**
- * Long-poll of the working session's events (D48, D136). Without --peek the
+ * Long-poll of the working session's events. Without --peek the
  * cursor moves to next_seq after a successful answer; it never moves back.
  */
 async function cmdEvents(opts) {
@@ -2365,7 +2365,7 @@ async function cmdEvents(opts) {
   return result;
 }
 
-// ---------------------------------------------------------------- media (D135)
+// ---------------------------------------------------------------- media
 
 // The server streams the bytes of a message; the skill writes them to a local
 // cache and returns the local path. The total request timeout does not apply
@@ -3354,7 +3354,7 @@ function cmdSelfCheck() {
 
 const byName = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
-/** AG15: the registry the service serves, compared with the one this skill knows. */
+/** The method registry the service serves, compared with the one this skill knows. */
 async function cmdMethods() {
   const ctx = makeCtx();
   // Always read from the service, never kept: the version is the point.
@@ -3442,13 +3442,13 @@ async function cmdOperation(opts) {
   return runOperation(makeCtx(), opts, method, args, 'operation');
 }
 
-// ---------------------------------------------------------------- dangerous mode (AG10)
+// ---------------------------------------------------------------- dangerous mode
 
 const IDEMPOTENCY_KEY = /^[A-Za-z0-9_.:-]{1,128}$/;
 
 /**
  * `tgai dangerous enable`: turns the dangerous mode on for bindings of one
- * working session (api §7.3). Never by default: without
+ * working session. Never by default: without
  * `--confirmed-by-user` the script refuses before the configuration and the
  * network. The flag is the agent's statement that the user said yes in the
  * dialog; it guards against a call by accident, not against a hostile agent.

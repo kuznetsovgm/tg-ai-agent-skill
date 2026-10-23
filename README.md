@@ -11,7 +11,13 @@ running service and a user token (`tga_…`) from its administrator.
 
 ## Install
 
-Build the release archive and installers, then install:
+**With an agent:** give it the link to this repository and write "install the
+skill". The agent follows [INSTALL.md](INSTALL.md): it builds and installs the skill
+for Claude Code, Codex CLI and OpenCode, then tells you how to put the service
+address and your token in place. The token never goes through the conversation:
+you create the token file yourself.
+
+**By hand:** build the release archive and installers, then install:
 
 ```
 node tools/pack.mjs            # writes build/skill/
@@ -27,6 +33,7 @@ Check the install: `node ~/.agents/skills/tg-ai-agent/scripts/tgai.mjs self-chec
 
 ## Layout
 
+- `INSTALL.md` — installation steps for an AI agent
 - `tg-ai-agent/` — the skill itself (what gets installed)
 - `tg-ai-agent/install/` — `install.sh`, `install.ps1`
 - `tools/pack.mjs` — reproducible packer (tar.gz + `SHA256SUMS`), no dependencies
