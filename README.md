@@ -11,11 +11,18 @@ running service and a user token (`tga_…`) from its administrator.
 
 ## Install
 
-**With an agent:** give it the link to this repository and write "install the
-skill". The agent follows [INSTALL.md](INSTALL.md): it builds and installs the skill
-for Claude Code, Codex CLI and OpenCode, then asks you for the service address
-and writes it, and tells you how to put your token in place. The token never goes
-through the conversation: you create the token file yourself.
+**With an agent:** paste this to Claude Code, Codex CLI or OpenCode:
+
+```
+Install the skill from https://github.com/kuznetsovgm/tg-ai-agent-skill
+```
+
+(or in Russian: `Установи скилл из https://github.com/kuznetsovgm/tg-ai-agent-skill`).
+The agent follows [INSTALL.md](INSTALL.md): it asks whether to install the skill for
+the current project or globally, builds and installs it for all three clients, asks
+you for the service address and writes it, and gives you one command to run in your
+own terminal that asks for your token at a hidden prompt. The token never goes
+through the conversation.
 
 **By hand:** build the release archive and installers, then install:
 

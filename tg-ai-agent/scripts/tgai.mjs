@@ -530,6 +530,21 @@ function parseApiBase(apiUrl) {
 }
 
 /**
+ * The command the USER types in their own terminal to create the token file
+ * (the token is typed or pasted at a hidden prompt, so it never reaches the
+ * conversation, a shell history or a process list).
+ */
+function tokenCommand(dir) {
+  const path = join(dir, 'token');
+  if (IS_WIN) {
+    const ps = (v) => `'${v.replace(/'/g, "''")}'`;
+    return `New-Item -ItemType Directory -Force -Path ${ps(dir)} | Out-Null; $t = Read-Host -AsSecureString 'Token'; $b = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($t); [IO.File]::WriteAllText(${ps(path)}, [Runtime.InteropServices.Marshal]::PtrToStringBSTR($b)); [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b)`;
+  }
+  const sh = (v) => `'${v.replace(/'/g, `'\\''`)}'`;
+  return `install -d -m 700 ${sh(dir)} && (umask 077; printf 'Token: ' && read -rs TOKEN && printf '%s' "$TOKEN" > ${sh(path)}); unset TOKEN; echo`;
+}
+
+/**
  * `tgai configure --api-url <address>`: writes the service address to the
  * private `config.json` (first session). The address is not a secret; the token
  * is never written by this script: the user creates the `token` file themselves.
@@ -561,13 +576,15 @@ function cmdConfigure(opts) {
   renameSync(tmp, path);
   const tokenSet =
     (env.TGAI_TOKEN ?? '') !== '' || existsSync(join(dir, 'token'));
+  const command = tokenCommand(dir);
   return {
     api_url: base,
     config_path: path,
     token_configured: tokenSet,
+    ...(tokenSet ? {} : { token_command: command }),
     next: tokenSet
       ? 'Run `tgai status`.'
-      : `Tell the user to create the token file themselves, in their own terminal and not in this conversation (${join(dir, 'token')}, permissions 0600; steps in references/setup-*.md). Never ask for the token. Then run \`tgai status\`.`,
+      : 'The token file is missing. Show the user the exact command from `token_command` and ask them to run it in their own terminal, not in this conversation: it asks for the token with a hidden prompt (the administrator gave them the token). Do not run it yourself, never ask for the token, and wait until the user says it is done. Then run `tgai status`.',
   };
 }
 
@@ -582,7 +599,7 @@ function resolveToken(dir) {
     const text = readPrivateFile(path, 'token');
     if (text === null) {
       throw configError(
-        `Token not found: the TGAI_TOKEN variable or file ${path} (permissions 0600; the user creates it themselves, outside the conversation).`,
+        `Token not found: the TGAI_TOKEN variable or file ${path} (permissions 0600). The user creates it themselves, outside the conversation: give them this command to run in their own terminal (it asks for the token with a hidden prompt): ${tokenCommand(dir)}`,
       );
     }
     token = text.trim();
